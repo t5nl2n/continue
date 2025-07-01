@@ -89,12 +89,16 @@ class WatsonX extends BaseLLM {
   static providerName = "watsonx";
 
   protected _convertMessage(message: ChatMessage) {
-    if (typeof message.content === "string") {
-      return message;
+    if (message.role === "tool") {
+      const { toolCallId, ...restOfMsg } = message;
+      return {
+        ...restOfMsg,
+        tool_call_id: toolCallId,
+      };
     }
 
-    if (message.role === "tool") {
-      return null;
+    if (typeof message.content === "string") {
+      return message;
     }
 
     const parts = message.content.map((part) => {
@@ -257,7 +261,7 @@ class WatsonX extends BaseLLM {
     const headers = this._getHeaders();
 
     const payload: any = {
-      messages: messages,
+      messages: messages.map(this._convertMessage),
       max_tokens: options.maxTokens ?? 1024,
       stop: stopSequences,
       frequency_penalty: options.frequencyPenalty || 1,
