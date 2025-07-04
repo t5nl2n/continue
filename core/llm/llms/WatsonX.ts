@@ -89,6 +89,35 @@ class WatsonX extends BaseLLM {
   static providerName = "watsonx";
 
   protected _convertMessage(message: ChatMessage) {
+    if (message.role === "user") {
+      if (typeof message.content === "string") {
+        return {
+          ...message,
+          content: [
+            {
+              type: "text",
+              text: message.content,
+            },
+          ],
+        };
+      }
+      const parts = message.content.map((part) => {
+        if (part.type === "imageUrl") {
+          return {
+            type: "image_url",
+            image_url: { ...part.imageUrl, detail: "low" },
+          };
+        }
+        return {
+          ...part,
+        };
+      });
+      return {
+        ...message,
+        content: parts,
+      };
+    }
+
     if (message.role === "tool") {
       const { toolCallId, ...restOfMsg } = message;
       return {
@@ -100,23 +129,6 @@ class WatsonX extends BaseLLM {
     if (typeof message.content === "string") {
       return message;
     }
-
-    const parts = message.content.map((part) => {
-      if (part.type === "imageUrl") {
-        return {
-          type: "image_url",
-          image_url: { ...part.imageUrl, detail: "low" },
-        };
-      }
-      return {
-        type: "text",
-        text: part.text,
-      };
-    });
-    return {
-      ...message,
-      content: parts,
-    };
   }
 
   protected _convertArgs(options: any, messages: ChatMessage[]) {
